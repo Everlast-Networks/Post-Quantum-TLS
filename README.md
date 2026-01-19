@@ -1,2 +1,2 @@
-# PQ-TLS
+PQTLS
 Post Quantum TLS
