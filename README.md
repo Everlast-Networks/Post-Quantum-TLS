@@ -1,8 +1,8 @@
 # QTLS Bridge
 
-QTLS Bridge is a Post-Quantum Enabled client forward proxy, and a server reverse proxy. Together, they link to provide post-quantum key establishment and signing for HTTP request and response bodies at the Application layer, carried over existing HTTPS or mTLS connection (Post-Quantum or Traditional AES).
+QTLS Bridge is a Post-Quantum Enabled client forward proxy, and a server reverse proxy. Together, they link to provide simplified post-quantum key establishment and signing for HTTP request and response bodies at the Application layer, without having to carry out extensive rewrites in client applications - and carried over existing HTTPS or mTLS connection (Post-Quantum or Traditional AES).
 
-The intent is to allow a standardised method for teams and organisations to rapidly add post-quantum security to existing services, with minimal change or disruption to application code and operational topology, or programs where the software is either hard to change, or legacy systems where post-quantum is not by allsupported.
+The intent is to allow a standardised method for teams and organisations to rapidly and reliably add post-quantum security to existing services, with minimal change or disruption to application code and operational topology, or into programs where the software is either hard to change, or legacy systems where post-quantum is not supported.
 
 ## Project scope
 
@@ -11,6 +11,7 @@ Designed for:
 - A local forward proxy for clients that cannot embed PQC primitives;
 - A reverse proxy for servers that need PQC protection in front of an existing upstream;
 - Windows, Linux, and macOS platform support.
+- Evaluation on mobile (iOS and Android) or embedded platforms (ARM and RISC-V) through mobile support.
 
 ## Documentation
 
