@@ -1,0 +1,18 @@
+mode: openssl           # 'application' or 'openssl' for Server
+certs_dir: ../certs     # Path to certs. In tests and prod, execs are stored under /bin and certs under /certs.
+
+openssl:
+  dir: /opt/ossl-3.5    # Openssl rolling version - in this build it's 3.5.
+  command: ""
+
+listen: 127.0.0.1:5000            # Set start/hosting IP for nginx or apache.
+upstream: http://127.0.0.1:5500   # Secure resource that's upstream (passes queries, API commands, etc up to it)
+
+replay_ttl_seconds: 120           # TTY expiry to avoid replay attacks
+replay_max_entries: 200000
+
+keys:
+  kem_private_path: openssl/server.kem.key
+  sig_private_path: openssl/server.sig.key
+  kem_public_path:  openssl/client.kem.pub
+  sig_public_path:  openssl/client.sig.pub

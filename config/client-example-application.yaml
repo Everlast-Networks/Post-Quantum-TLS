@@ -1,0 +1,14 @@
+mode: application       # 'application' or 'openssl' or 'system' [system is windows exclusive for now]
+certs_dir: ../certs     # Path to certs. In tests and prod, execs are stored under /bin and certs under /certs.
+
+openssl:
+  dir: /opt/ossl-3.5    # Openssl rolling version - in this build it's 3.5.
+  command: ""
+
+replay_ttl_seconds: 120           # TTY expiry to avoid replay attacks
+
+keys:
+  kem_private_path: application/client.kem.seed
+  sig_private_path: application/client.sig.seed
+  kem_public_path:  application/server.kem.pub
+  sig_public_path:  application/server.sig.pub
