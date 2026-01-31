@@ -1,6 +1,6 @@
 # PQ-TLS
 
-PQ-TLS is a Post-Quantum TLS-based client forward proxy, and a server reverse proxy for the application layer. Together, they link to provide simplified post-quantum data keying and signing behin the Network (HTTPS) layer, without having to carry out extensive rewrites in client applications.
+PQ-TLS is a Post-Quantum TLS-based client forward proxy, and a server reverse proxy for the application layer. Together, they link to provide simplified post-quantum data keying and signing behind the Network (HTTPS) layer, without having to carry out extensive rewrites in client applications.
 
 The intent is to allow a standardised method for teams and organisations to rapidly and reliably add post-quantum security to existing services, with minimal change, rewrite, or disruption to application code and operational topology; or be deployed into programs where the software is either hard to change, or legacy systems where post-quantum is not supported.
 
@@ -17,8 +17,8 @@ Use cases:
 - Security denied environments,
 - Ad hoc networks,
 - Guest networks or systems,
-- Trial of PQC (Post-Quantum) ahead of standards enforcement,
-- Securing data with pqc algorithms when classical cryptography is required.
+- Trial of application PQC (Post-Quantum) algorithms ahead of standards enforcement,
+- Securing data with PQC algorithms when classical cryptography is required.
 
 ## Documentation
 
@@ -39,7 +39,7 @@ Further reading in `/docs`:
 ### Prerequisites
 
 - Go 1.23+
-- OpenSSL 3.5+ for Test Certificate generation
+- OpenSSL 3.5+ for Test Certificate generation and back-end.
 - Python 3.12+ for example server endpoint.
 
 ### 1) Building a release tree
