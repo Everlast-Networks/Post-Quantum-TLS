@@ -1,3 +1,19 @@
+// ---------------------------------------------------------------------------
+// Copyright (c) 2026 Everlast Networks Pty. Ltd..
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" basis,
+// without warranties or conditions of any kind, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ---------------------------------------------------------------------------
+
 package envelope
 
 import (
@@ -23,7 +39,7 @@ type Header struct {
 	Version uint16
 	Kind    Kind
 
-	Mode uint8 // 1=application, 2=openssl, 3=system (Windows)
+	Mode uint8 // 1=circl, 2=openssl, 3=system (Windows)
 	// V1: ML-KEM-1024 fixed.
 	// Signature scheme is inferred from the public key material in use.
 	TimestampUnixMilli int64

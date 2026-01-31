@@ -7,3 +7,4 @@
 /tests/fakefile_64MB.txt
 /tests/*.py-old
 /bin/*
+/everlast_license_updater.ps1

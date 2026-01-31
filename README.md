@@ -1,17 +1,24 @@
-# QTLS Bridge
+# PQ-TLS
 
-QTLS Bridge is a Post-Quantum Enabled client forward proxy, and a server reverse proxy. Together, they link to provide simplified post-quantum key establishment and signing for HTTP request and response bodies at the Application layer, without having to carry out extensive rewrites in client applications - and carried over existing HTTPS or mTLS connection (Post-Quantum or Traditional AES).
+PQ-TLS is a Post-Quantum TLS-based client forward proxy, and a server reverse proxy for the application layer. Together, they link to provide simplified post-quantum data keying and signing behin the Network (HTTPS) layer, without having to carry out extensive rewrites in client applications.
 
-The intent is to allow a standardised method for teams and organisations to rapidly and reliably add post-quantum security to existing services, with minimal change or disruption to application code and operational topology, or into programs where the software is either hard to change, or legacy systems where post-quantum is not supported.
+The intent is to allow a standardised method for teams and organisations to rapidly and reliably add post-quantum security to existing services, with minimal change, rewrite, or disruption to application code and operational topology; or be deployed into programs where the software is either hard to change, or legacy systems where post-quantum is not supported.
 
 ## Project scope
 
 Designed for:
-- Application-level protection for HTTP request and response bodies, plus selected headers;
-- A local forward proxy for clients that cannot embed PQC primitives;
+- A local forward proxy or executable for clients that cannot embed PQC primitives;
 - A reverse proxy for servers that need PQC protection in front of an existing upstream;
-- Windows, Linux, and macOS platform support.
+- Windows, Linux, and macOS platform support;
 - Evaluation on mobile (iOS and Android) or embedded platforms (ARM and RISC-V) through mobile support.
+
+Use cases:
+- Internal systems (between services on a machine or in a intranet or air gapped network),
+- Security denied environments,
+- Ad hoc networks,
+- Guest networks or systems,
+- Trial of PQC (Post-Quantum) ahead of standards enforcement,
+- Securing data with pqc algorithms when classical cryptography is required.
 
 ## Documentation
 
@@ -19,13 +26,13 @@ Start here:
 - Quick Start (below)
 
 Further reading in `/docs`:
-- `docs/README.md`; index and navigation
-- `docs/architecture.md`; components and data flow
-- `docs/configuration.md`; config files and directory layout
-- `docs/keys-and-certs.md`; key formats; generating keys and certs
-- `docs/testing.md`; local test recipes; Windows quoting notes
-- `docs/security.md`; disclosure; supply chain; hardening notes
-- `docs/compliance.md`; standards context and procurement guidance
+- `docs/README.md` - index and navigation.
+- `docs/architecture.md` - components and data flow.
+- `docs/configuration.md` - config files and directory layout.
+- `docs/keys-and-certs.md` - key formats, generating keys and certs.
+- `docs/testing.md` - local test recipes, Windows quoting notes.
+- `docs/security.md` - disclosure, supply chain, hardening notes.
+- `docs/compliance.md` - standards context and procurement guidance.
 
 ## Quick Start
 
@@ -37,7 +44,7 @@ Further reading in `/docs`:
 
 ### 1) Building a release tree
 
-macOS or Linux:
+Linux and macOS:
 
 ```sh
 chmod +x ./compile_install_mac_linux.sh
@@ -47,6 +54,7 @@ chmod +x ./compile_install_mac_linux.sh
 Windows (PowerShell):
 
 ```powershell
+Unblock-File -Path .\compile_install_windows.ps1
 .\compile_install_windows.ps1
 ```
 
@@ -59,14 +67,14 @@ release/
     config/
       client.yaml
     certs/
-      application/
+      circl/
       openssl/
   server/
     qtls-server[.exe]
     config/
       server.yaml
     certs/
-      application/
+      circl/
       openssl/
 ```
 
@@ -75,7 +83,7 @@ release/
 From the repo root:
 
 ```sh
-python3 ./qtls_test_backend.py --listen 127.0.0.1 --port 5500
+python3 ./tests/qtls_test_backend.py --listen 127.0.0.1 --port 5500
 ```
 
 This demo backend exposes `/echo` and `/largefile` on localhost.
@@ -90,7 +98,7 @@ If your client is on a different host, set `listen: 0.0.0.0:5000` in the server 
 
 ### 4) Run the client forward proxy
 
-Linux or macOS:
+Linux and macOS:
 
 ```sh
 export QTLS_URL="http://127.0.0.1:5000/qtls"
@@ -122,21 +130,21 @@ $chunkSize      = 4 * 1024 * 1024
 
 ### 5) Send a request through the forward proxy
 
-Plain text echo:
+**5.1) Plain text echo:**
 
 ```sh
 curl -sS -X POST "http://127.0.0.1:7777/echo" --data-binary "meow"
 ```
 
-JSON as a string literal (recommended for simple echo servers):
+**5.2) Send JSON as a string literal (recommended for simple echo servers or payload TX/RX):**
 
-Linux or macOS:
+Linux and macOS:
 
 ```sh
 curl -sS -X POST "http://127.0.0.1:7777/echo" --data-binary '{ "hello": "world" }'
 ```
 
-Windows (PowerShell); use single quotes or stop parsing for native programs:
+Windows (PowerShell) - use single quotes or stop parsing for native programs:
 
 ```powershell
 curl.exe -sS -X POST "http://127.0.0.1:7777/echo" --data-binary '{ "hello": "world" }'
@@ -148,7 +156,7 @@ curl.exe -sS -X POST "http://127.0.0.1:7777/echo" --data-binary '{ "hello": "wor
 
 ### 6) Download a file through the forward proxy
 
-Linux or macOS:
+Linux and macOS:
 
 ```sh
 curl -sS -o ./out_large.bin "http://127.0.0.1:7777/largefile"
@@ -160,16 +168,29 @@ Windows:
 curl.exe -sS -o .\out_large.bin "http://127.0.0.1:7777/largefile"
 ```
 
+*Note - largefile is an example file created by the test Python back-end script.*
+
 ## Operational notes
 
-- Application mode is the simplest for cross-platform use; use the `.hex` key artefacts under `certs/application/` on Windows.
-- OpenSSL mode runs the `openssl` binary as an external command; it suits environments where OpenSSL is delivered and audited separately.
-- Expect overhead; extra bytes on the wire; additional CPU for sealing and opening; more moving parts to test. Plan for load and observability early.
+- Circl mode is the simplest for cross-platform use, use the `.hex` key artefacts under `certs/circl/` on Windows.
+- OpenSSL mode runs the `openssl` binary as an external command, it suits environments where OpenSSL is delivered and audited separately.
+- Expect overhead, extra bytes on the wire, additional CPU for sealing and opening, and more moving parts to test. Plan for load and observability early.
 
 ## Security
 
-See `SECURITY.md` for reporting and disclosure expectations. Keep deployments conservative; treat this as security infrastructure that deserves testing, review, and operational discipline.
+Please review `SECURITY.md` for reporting and disclosure expectations. Keep deployments conservative - treat this as security infrastructure that deserves testing, review, and operational discipline.
 
 ## Licence
 
-Apache Licence 2.0; see `LICENSE`.
+Apache Licence 2.0 - see `LICENSE`.
+
+
+<div style="text-align:center;">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/img/EL_LOGO_WHITE.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/img/EL_LOGO_BLACK.png">
+    <img style="width:250px; height:auto; max-width:100%; display:block; margin-left:auto; margin-right:auto; padding-top:50px;" alt="Everlast Networks logo" src="docs/img/EL_LOGO_BLACK.png">
+  </picture>
+
+  <a href="https://everlastnetworks.com.au/">Everlast Networks</a> • <a href="https://everlastnetworks.com.au/contact/">Support</a>
+</div>

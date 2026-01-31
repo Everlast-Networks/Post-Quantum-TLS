@@ -1,4 +1,4 @@
-mode: application       # 'application' or 'openssl' for Server
+mode: circl       # 'application' or 'openssl' for Server
 certs_dir: ../certs     # Path to certs. In tests and prod, execs are stored under /bin and certs under /certs.
 
 openssl:
@@ -12,7 +12,7 @@ replay_ttl_seconds: 120           # TTY expiry to avoid replay attacks
 replay_max_entries: 200000
 
 keys:
-  kem_private_path: application/server.kem.seed
-  sig_private_path: application/server.sig.seed
-  kem_public_path:  application/client.kem.pub
-  sig_public_path:  application/client.sig.pub
+  kem_private_path: circl/server.kem.seed
+  sig_private_path: circl/server.sig.seed
+  kem_public_path:  circl/client.kem.pub
+  sig_public_path:  circl/client.sig.pub

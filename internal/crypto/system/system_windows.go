@@ -1,3 +1,19 @@
+// ---------------------------------------------------------------------------
+// Copyright (c) 2026 Everlast Networks Pty. Ltd..
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" basis,
+// without warranties or conditions of any kind, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ---------------------------------------------------------------------------
+
 //go:build windows
 
 package system
@@ -17,7 +33,7 @@ import (
 //
 // V1 scope:
 //   * ML-KEM-1024 only (key agreement)
-//   * Signature operations remain in application mode for now; key import for ML-DSA via CNG is volatile
+//   * Signature operations remain in circl mode for now; key import for ML-DSA via CNG is volatile
 //     across prerelease builds and will be hardened in V2.
 //
 // TODO List:
@@ -137,11 +153,11 @@ func (p *Provider) Decap(ctx context.Context, selfKEMPrivateOrSeed []byte, ct []
 }
 
 func (p *Provider) Sign(ctx context.Context, selfSigPrivate []byte, msg []byte) ([]byte, error) {
-	return nil, errors.New("system mode signature is not enabled in V1; use application or openssl")
+	return nil, errors.New("system mode signature is not enabled in V1; use circl or openssl")
 }
 
 func (p *Provider) Verify(ctx context.Context, peerSigPublic []byte, msg []byte, sig []byte) error {
-	return errors.New("system mode signature is not enabled in V1; use application or openssl")
+	return errors.New("system mode signature is not enabled in V1; use circl or openssl")
 }
 
 // ---- bcrypt.dll bindings ----

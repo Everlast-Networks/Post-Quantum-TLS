@@ -1,18 +1,30 @@
-mode: application       # 'application' or 'openssl' for Server
-certs_dir: ../certs     # Path to certs. In tests and prod, execs are stored under /bin and certs under /certs.
+mode: openssl
+
+certs_dir: ../certs
 
 openssl:
-  dir: /opt/ossl-3.5    # Openssl rolling version - in this build it's 3.5.
+  dir: /opt/ossl-3.5
   command: ""
+  conf_path: openssl/openssl.cnf
 
-listen: 127.0.0.1:5000            # Set start/hosting IP for nginx or apache.
-upstream: http://127.0.0.1:5500   # Secure resource that's upstream (passes queries, API commands, etc up to it)
-
-replay_ttl_seconds: 120           # TTY expiry to avoid replay attacks
-replay_max_entries: 200000
+x509:
+  root_cert_path: root.crt
+  chain_path: chain.pem
+  client_cert_path: client.crt
+  server_cert_path: server.crt
 
 keys:
-  kem_private_path: application/server.kem.seed
-  sig_private_path: application/server.sig.seed
-  kem_public_path:  application/client.kem.pub
-  sig_public_path:  application/client.sig.pub
+  # Server encrypts to client using client KEM public key; server decrypts using server KEM private key.
+  kem_public_path: openssl/client.kem.pub
+  kem_private_path: openssl/server.kem.key
+
+  # Server signs using server Sig private key.
+  # Peer Sig public key can be omitted in OpenSSL mode; it will be extracted from client_cert_path.
+  sig_private_path: openssl/server.sig.key
+  sig_public_path: ""
+
+listen: 127.0.0.1:5000
+upstream: http://127.0.0.1:5500
+
+replay_ttl_seconds: 120
+replay_max_entries: 200000

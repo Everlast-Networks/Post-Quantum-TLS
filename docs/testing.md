@@ -43,4 +43,4 @@ If your upstream is a strict JSON endpoint, set the correct `Content-Type` and e
 
 - Windows quoting; prefer single quotes or `--%` for native programs.
 - Cross-host test; set server `listen` to a reachable address; update the client `-server` URL.
-- ML-DSA key parsing failures on Windows; use `.hex` key files under `certs/application/`.
+- ML-DSA key parsing failures on Windows; use `.hex` key files under `certs/circl/`.

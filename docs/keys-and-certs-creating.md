@@ -5,7 +5,7 @@ This document will guide you through creating your own QTLS certificate set for 
 - an ML-DSA Root CA certificate (`root.crt`) and private key (`root.key`);
 - server and client certificates signed by the Root CA;
 - ML-KEM keypairs for the server and client (used by QTLS for key establishment);
-- Application-mode key material produced by `keyutil`.
+- Circl-mode key material produced by `keyutil`.
 
 Note: An automation script is being actively developed.
 
@@ -24,7 +24,7 @@ From the project directory:
 ```
 certs/
   openssl/
-  application/
+  circl/
   root.crt
   server.crt
   client.crt
@@ -34,12 +34,12 @@ certs/
 Certificate Locations:
 
 - QTLS OpenSSL mode uses files under `certs/openssl/`.
-- QTLS Application mode uses files under `certs/application/`.
+- QTLS Circl mode uses files under `certs/circl/`.
 
 ## Step 1: Create the folders
 
 ```bash
-mkdir -p certs/openssl certs/application
+mkdir -p certs/openssl certs/circl
 ```
 
 ## Step 2: Set the names and validity
@@ -160,21 +160,21 @@ cp -f "$OUT/root.crt" "$OUT/chain.pem"
 "$OPENSSL_BIN" verify -CAfile "$OUT/root.crt" "$OUT/server.crt" "$OUT/client.crt"
 ```
 
-## Step 6: Produce Application-mode artefacts with keyutil
+## Step 6: Produce Circl-mode artefacts with keyutil
 
-This step is optional, and only required if you intend on using QTLS Bridge in Application Mode - that is, using internal crypto implementations rather than OpenSSL on your target systems - ie, where deployment is constrained, OpenSSL is not supported, etc.
+This step is optional, and only required if you intend on using QTLS Bridge in Circl Mode - that is, using internal crypto implementations rather than OpenSSL on your target systems - ie, where deployment is constrained, OpenSSL is not supported, etc.
 
-Application-mode outputs go into `certs/application/`.
+Circl-mode outputs go into `certs/circl/`.
 
 Run the first command that works for your `keyutil` build:
 
 ```bash
-APP_OUT="certs/application"
+APP_OUT="certs/circl"
 
 ./bin/keyutil -out "$APP_OUT" -mldsa "$MLDSA_LEVEL" -force   || ./bin/keyutil --out "$APP_OUT" --mldsa "$MLDSA_LEVEL" --force   || ( ./bin/keyutil -out "$APP_OUT" -role client -sig "$MLDSA_LEVEL" -force        && ./bin/keyutil -out "$APP_OUT" -role server -sig "$MLDSA_LEVEL" -force )
 ```
 
-Note: `certs/application/` is owned by `keyutil`; do not attempt to “convert” OpenSSL keys into this format as this will break QTLS.
+Note: `certs/circl/` is owned by `keyutil`; do not attempt to “convert” OpenSSL keys into this format as this will break QTLS.
 
 ## Step 7: Convenience copies at `certs/` root
 
@@ -196,8 +196,8 @@ chmod 600   "$OUT/root.key"   "$OUT/server.sig.key" "$OUT/server.kem.key"   "$OU
 
 chmod 644   "$OUT/root.crt" "$OUT/server.crt" "$OUT/client.crt" "$OUT/chain.pem"   "$OUT/server.sig.pub" "$OUT/server.kem.pub"   "$OUT/client.sig.pub" "$OUT/client.kem.pub"   2>/dev/null || true
 
-chmod 600 certs/application/*.seed 2>/dev/null || true
-chmod 644 certs/application/*.pub  2>/dev/null || true
+chmod 600 certs/circl/*.seed 2>/dev/null || true
+chmod 644 certs/circl/*.pub  2>/dev/null || true
 ```
 
 ## Quick check
@@ -205,5 +205,5 @@ chmod 644 certs/application/*.pub  2>/dev/null || true
 ```bash
 "$OPENSSL_BIN" x509 -in "certs/server.crt" -noout -subject -serial
 "$OPENSSL_BIN" verify -CAfile "certs/root.crt" "certs/server.crt"
-ls -la certs/application
+ls -la certs/circl
 ```

@@ -22,7 +22,7 @@ One-shot mode:
 
 - `cmd/client`; CLI and forward proxy implementation.
 - `cmd/server`; server reverse proxy; chunk reassembly endpoints.
-- `cmd/keyutil`; key generation for application mode.
+- `cmd/keyutil`; key generation for circl mode.
 - `internal/qtls`; sealing and opening; replay ID generation; shared secret derivation.
 - `internal/crypto/app`; Go crypto provider (CIRCL) for ML-KEM and ML-DSA.
 - `internal/crypto/openssl`; OpenSSL external command integration.
@@ -31,7 +31,7 @@ One-shot mode:
 
 ## Modes
 
-- `application`; Go implementation (CIRCL) for ML-KEM and ML-DSA.
+- `circl`; Go implementation (CIRCL) for ML-KEM and ML-DSA.
 - `openssl`; external OpenSSL binary; suitable for audited OpenSSL deployments.
 - `system`; Windows-only; uses CNG; intended for approved platform primitives.
 

@@ -1,9 +1,27 @@
+// ---------------------------------------------------------------------------
+// Copyright (c) 2026 Everlast Networks Pty. Ltd..
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" basis,
+// without warranties or conditions of any kind, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ---------------------------------------------------------------------------
+
 package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"flag"
 	"fmt"
@@ -56,38 +74,34 @@ func main() {
 	}
 	defer closeFn()
 
-	// Secure server against expired cert.
-	certGuard := certinfo.NewCertGuard(cfg.CertsDir, []string{"server.crt", "client.crt", "root.crt"}, 30*time.Second)
+	mode, err := crypto.ModeFromString(string(cfg.Mode))
+	if err != nil {
+		l.Error("bad_mode", slog.Any("err", err))
+		os.Exit(2)
+	}
+
+	opensslCmd := ""
+	if mode == crypto.ModeOpenSSL {
+		opensslCmd = config.ResolveOpenSSLCommand(cfg.OpenSSL.Dir, cfg.OpenSSL.Command)
+		if cfg.OpenSSL.ConfPath != "" {
+			_ = os.Setenv("OPENSSL_CONF", cfg.OpenSSL.ConfPath)
+		}
+	}
+
+	// Fast validity gate without relying on crypto/x509 algorithm tables.
+	certGuard := certinfo.NewCertGuard(cfg.CertsDir, []string{
+		cfg.X509.ServerCertPath,
+		cfg.X509.ClientCertPath,
+		cfg.X509.RootCertPath,
+		cfg.X509.ChainCertPath,
+	}, 30*time.Second)
 	if err := certGuard.CheckNow(time.Now()); err != nil {
 		l.Error("cert_invalid", slog.Any("err", err))
 		os.Exit(2)
 	}
 
-	// Checking chain and leaf expiry time
-	now := time.Now()
-	// Server validates its own identity
-	if err := certinfo.VerifyChainNow(
-		cfg.CertsDir,
-		"server.crt",
-		"root.crt",
-		"chain.pem",
-		now,
-		[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-	); err != nil {
-		fmt.Fprintln(os.Stderr, "server certificate chain invalid:", err)
-		os.Exit(1)
-	}
-
-	// Server validates client identity
-	if err := certinfo.VerifyChainNow(
-		cfg.CertsDir,
-		"client.crt",
-		"root.crt",
-		"chain.pem",
-		now,
-		[]x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
-	); err != nil {
-		fmt.Fprintln(os.Stderr, "client certificate chain invalid:", err)
+	if err := verifyServerChains(context.Background(), mode, opensslCmd, cfg, time.Now()); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -103,18 +117,11 @@ func main() {
 		})
 	}
 
-	// Keep the structured chain log for troubleshooting; banner-friendly boot avoids duplicating this.
 	if *debug && *disableBanner {
 		infos, _ := certinfo.ReadChain(cfg.CertsDir)
 		for _, ii := range infos {
 			l.Info("cert_chain", slog.String("info", ii.String()))
 		}
-	}
-
-	mode, err := crypto.ModeFromString(string(cfg.Mode))
-	if err != nil {
-		l.Error("bad_mode", slog.Any("err", err))
-		os.Exit(2)
 	}
 
 	prov, err := buildProvider(mode, cfg.OpenSSL.Dir, cfg.OpenSSL.Command)
@@ -123,7 +130,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	keys, err := loadServerKeys(mode, cfg.Keys)
+	keys, err := loadServerKeys(context.Background(), mode, opensslCmd, cfg)
 	if err != nil {
 		l.Error("keys", slog.Any("err", err))
 		os.Exit(2)
@@ -156,7 +163,6 @@ func main() {
 			return
 		}
 
-		// Check if client cert valid.
 		if err := certGuard.CheckNow(time.Now()); err != nil {
 			http.Error(w, "certificate invalid", http.StatusForbidden)
 			return
@@ -182,7 +188,6 @@ func main() {
 			return
 		}
 
-		// Replay check before decryption.
 		hb, err := msg.Header.MarshalBinary()
 		if err != nil {
 			http.Error(w, "bad header", http.StatusBadRequest)
@@ -231,7 +236,6 @@ func main() {
 			return
 		}
 
-		// Forward to upstream.
 		upURL := *upstream
 		upURL.Path = msg.Header.Path
 		upURL.RawQuery = r.URL.RawQuery
@@ -305,9 +309,86 @@ func main() {
 	}
 }
 
+func verifyServerChains(ctx context.Context, mode crypto.Mode, opensslCmd string, cfg config.ServerConfig, now time.Time) error {
+	if mode == crypto.ModeOpenSSL {
+		vctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		defer cancel()
+
+		if err := certinfo.VerifyChainOpenSSL(vctx, opensslCmd, cfg.OpenSSL.ConfPath, cfg.X509.ServerCertPath, cfg.X509.RootCertPath, cfg.X509.ChainCertPath, certinfo.VerifyPurposeServer, "", now); err != nil {
+			return fmt.Errorf("server certificate chain invalid: %w", err)
+		}
+		if err := certinfo.VerifyChainOpenSSL(vctx, opensslCmd, cfg.OpenSSL.ConfPath, cfg.X509.ClientCertPath, cfg.X509.RootCertPath, cfg.X509.ChainCertPath, certinfo.VerifyPurposeClient, "", now); err != nil {
+			return fmt.Errorf("client certificate chain invalid: %w", err)
+		}
+		return nil
+	}
+
+	if err := verifyChainGoPaths(cfg.X509.ServerCertPath, cfg.X509.RootCertPath, cfg.X509.ChainCertPath, now, []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}); err != nil {
+		return fmt.Errorf("server certificate chain invalid: %w", err)
+	}
+	if err := verifyChainGoPaths(cfg.X509.ClientCertPath, cfg.X509.RootCertPath, cfg.X509.ChainCertPath, now, []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}); err != nil {
+		return fmt.Errorf("client certificate chain invalid: %w", err)
+	}
+	return nil
+}
+
+func verifyChainGoPaths(leafPath, rootPath, chainPath string, now time.Time, eku []x509.ExtKeyUsage) error {
+	leafDER, err := readFirstCertDER(leafPath)
+	if err != nil {
+		return err
+	}
+	leaf, err := x509.ParseCertificate(leafDER)
+	if err != nil {
+		return err
+	}
+
+	roots := x509.NewCertPool()
+	if err := appendPEM(roots, rootPath); err != nil {
+		return err
+	}
+
+	inters := x509.NewCertPool()
+	if strings.TrimSpace(chainPath) != "" {
+		if err := appendPEM(inters, chainPath); err != nil {
+			return err
+		}
+	}
+
+	_, err = leaf.Verify(x509.VerifyOptions{
+		Roots:         roots,
+		Intermediates: inters,
+		CurrentTime:   now,
+		KeyUsages:     eku,
+	})
+	return err
+}
+
+func appendPEM(pool *x509.CertPool, path string) error {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	if ok := pool.AppendCertsFromPEM(b); !ok {
+		return fmt.Errorf("no certs parsed from %s", path)
+	}
+	return nil
+}
+
+func readFirstCertDER(path string) ([]byte, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	blk, _ := pem.Decode(b)
+	if blk == nil || blk.Type != "CERTIFICATE" {
+		return nil, fmt.Errorf("no CERTIFICATE block in %s", path)
+	}
+	return blk.Bytes, nil
+}
+
 func buildProvider(mode crypto.Mode, opensslDir, overrideCmd string) (crypto.Provider, error) {
 	switch mode {
-	case crypto.ModeApplication:
+	case crypto.ModeCircl:
 		return app.New()
 	case crypto.ModeOpenSSL:
 		cmd := config.ResolveOpenSSLCommand(opensslDir, overrideCmd)
@@ -317,18 +398,22 @@ func buildProvider(mode crypto.Mode, opensslDir, overrideCmd string) (crypto.Pro
 	}
 }
 
-func loadServerKeys(mode crypto.Mode, k config.KeyConfig) (qtls.Keys, error) {
+func loadServerKeys(ctx context.Context, mode crypto.Mode, opensslCmd string, cfg config.ServerConfig) (qtls.Keys, error) {
+	k := cfg.Keys
+
 	readRaw := func(path string) ([]byte, error) {
+		if strings.TrimSpace(path) == "" {
+			return nil, errors.New("empty key path")
+		}
 		b, err := os.ReadFile(path)
 		if err != nil {
 			return nil, err
 		}
-		// OpenSSL mode consumes PEM as-is; Application/System decode into bytes.
 		return qtls.DecodeKeyBytesForMode(mode, b)
 	}
 
 	choose := func(a, b string) string {
-		if a != "" {
+		if strings.TrimSpace(a) != "" {
 			return a
 		}
 		return b
@@ -349,12 +434,26 @@ func loadServerKeys(mode crypto.Mode, k config.KeyConfig) (qtls.Keys, error) {
 	if err != nil {
 		return qtls.Keys{}, err
 	}
-	peerSig, err := readRaw(k.SigPublicPath)
-	if err != nil {
-		return qtls.Keys{}, err
+
+	var peerSig []byte
+	switch {
+	case strings.TrimSpace(k.SigPublicPath) != "":
+		peerSig, err = readRaw(k.SigPublicPath)
+		if err != nil {
+			return qtls.Keys{}, err
+		}
+	case mode == crypto.ModeOpenSSL:
+		if opensslCmd == "" {
+			opensslCmd = "openssl"
+		}
+		peerSig, err = certinfo.ExtractCertPublicKeyOpenSSL(ctx, opensslCmd, cfg.OpenSSL.ConfPath, cfg.X509.ClientCertPath)
+		if err != nil {
+			return qtls.Keys{}, err
+		}
+	default:
+		return qtls.Keys{}, errors.New("sig_public_path is required for non-OpenSSL modes")
 	}
 
-	// Application/System: unwrap PKCS#8 and SPKI to packed bytes.
 	if mode != crypto.ModeOpenSSL {
 		if kemSelfPath == k.KEMPrivatePath {
 			if kemPriv, err = keyimport.UnwrapPrivate(kemPriv); err != nil {
@@ -375,7 +474,7 @@ func loadServerKeys(mode crypto.Mode, k config.KeyConfig) (qtls.Keys, error) {
 	}
 
 	if len(kemPriv) == 0 || len(sigPriv) == 0 || len(peerKem) == 0 || len(peerSig) == 0 {
-		return qtls.Keys{}, fmt.Errorf("missing keys; expected server KEM private/seed, server Sig private/seed, client KEM public, client Sig public")
+		return qtls.Keys{}, fmt.Errorf("missing keys; expected server KEM private/seed, server Sig private/seed, client KEM public, client Sig public (or client certificate)")
 	}
 
 	return qtls.Keys{

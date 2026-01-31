@@ -46,8 +46,8 @@ $serverPkg = ".\cmd\server"
 $clientBin = "qtls-client"
 $serverBin = "qtls-server"
 
-$clientCfgSrc = ".\config\client-example-application.yaml"
-$serverCfgSrc = ".\config\server-example-application.yaml"
+$clientCfgSrc = ".\config\client-example-circl.yaml"
+$serverCfgSrc = ".\config\server-example-circl.yaml"
 
 $releaseDir = ".\release"
 
@@ -111,9 +111,9 @@ New-Item -ItemType Directory -Force -Path `
   "$releaseDir\server", `
   "$releaseDir\server\config", `
   "$releaseDir\client\certs\openssl", `
-  "$releaseDir\client\certs\application", `
+  "$releaseDir\client\certs\circl", `
   "$releaseDir\server\certs\openssl", `
-  "$releaseDir\server\certs\application" | Out-Null
+  "$releaseDir\server\certs\circl" | Out-Null
 
 if (-not (Test-Path $clientCfgSrc -PathType Leaf)) { Die "missing config: $clientCfgSrc" }
 if (-not (Test-Path $serverCfgSrc -PathType Leaf)) { Die "missing config: $serverCfgSrc" }

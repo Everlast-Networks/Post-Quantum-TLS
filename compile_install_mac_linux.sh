@@ -8,8 +8,8 @@ SERVER_PKG="./cmd/server"
 CLIENT_BIN="qtls-client"
 SERVER_BIN="qtls-server"
 
-CLIENT_CFG_SRC="./config/client-example-application.yaml"
-SERVER_CFG_SRC="./config/server-example-application.yaml"
+CLIENT_CFG_SRC="./config/client-example-circl.yaml"
+SERVER_CFG_SRC="./config/server-example-circl.yaml"
 
 RELEASE_DIR="./release"
 # -------------------------------------------------------
@@ -128,11 +128,11 @@ mkdir -p \
   "${RELEASE_DIR}/server" \
   "${RELEASE_DIR}/server/config" \
   "${RELEASE_DIR}/client/certs/openssl" \
-  "${RELEASE_DIR}/client/certs/application" \
+  "${RELEASE_DIR}/client/certs/circl" \
   "${RELEASE_DIR}/server/certs/openssl" \
-  "${RELEASE_DIR}/server/certs/application"
+  "${RELEASE_DIR}/server/certs/circl"
 
-echo "Copying default configs (application examples)"
+echo "Copying default configs (circl examples)"
 [[ -f "${CLIENT_CFG_SRC}" ]] || die "missing config: ${CLIENT_CFG_SRC}"
 [[ -f "${SERVER_CFG_SRC}" ]] || die "missing config: ${SERVER_CFG_SRC}"
 cp -f "${CLIENT_CFG_SRC}" "${RELEASE_DIR}/client/config/client.yaml"

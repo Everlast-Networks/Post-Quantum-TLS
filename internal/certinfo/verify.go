@@ -1,3 +1,19 @@
+// ---------------------------------------------------------------------------
+// Copyright (c) 2026 Everlast Networks Pty. Ltd..
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" basis,
+// without warranties or conditions of any kind, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ---------------------------------------------------------------------------
+
 package certinfo
 
 import (
@@ -9,6 +25,7 @@ import (
 	"time"
 )
 
+// VerifyChainNow is a convenience wrapper that resolves filenames under certsDir.
 func VerifyChainNow(
 	certsDir string,
 	leafName string,
@@ -17,7 +34,22 @@ func VerifyChainNow(
 	now time.Time,
 	eku []x509.ExtKeyUsage,
 ) error {
-	leafDER, err := readFirstCertDER(filepath.Join(certsDir, leafName))
+	leafPath := filepath.Join(certsDir, leafName)
+	rootPath := filepath.Join(certsDir, rootName)
+	chainPath := filepath.Join(certsDir, chainName)
+	return VerifyChainPathsNow(leafPath, rootPath, chainPath, now, eku)
+}
+
+// VerifyChainPathsNow verifies a leaf certificate against the supplied trust roots and intermediates,
+// using the Go x509 verifier. Suitable for classical chains; PQ chains should use VerifyChainOpenSSLNow.
+func VerifyChainPathsNow(
+	leafCertPath string,
+	rootCertPath string,
+	chainCertPath string,
+	now time.Time,
+	eku []x509.ExtKeyUsage,
+) error {
+	leafDER, err := readFirstCertDER(leafCertPath)
 	if err != nil {
 		return err
 	}
@@ -27,13 +59,15 @@ func VerifyChainNow(
 	}
 
 	roots := x509.NewCertPool()
-	if err := appendPEM(roots, filepath.Join(certsDir, rootName)); err != nil {
+	if err := appendPEM(roots, rootCertPath); err != nil {
 		return err
 	}
 
 	inters := x509.NewCertPool()
-	if err := appendPEM(inters, filepath.Join(certsDir, chainName)); err != nil {
-		return err
+	if chainCertPath != "" {
+		if err := appendPEM(inters, chainCertPath); err != nil {
+			return err
+		}
 	}
 
 	_, err = leaf.Verify(x509.VerifyOptions{

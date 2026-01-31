@@ -5,16 +5,16 @@ QTLS Bridge uses two PQ key pairs per endpoint:
 - ML-KEM-1024; key establishment; per-message shared secret.
 - ML-DSA; signing; parameter set inferred from key material.
 
-## Application mode key formats
+## Circl mode key formats
 
-Application mode accepts:
+Circl mode accepts:
 - packed key material produced by `cmd/keyutil`;
 - OpenSSL containers (PKCS#8 private keys; SPKI public keys) in PEM or DER.
 
 Windows distribution note:
-- Prefer the `.hex` key artefacts under `certs/application/`; they are robust across packaging and copy tooling.
+- Prefer the `.hex` key artefacts under `certs/circl/`; they are robust across packaging and copy tooling.
 
-## Generate application keys
+## Generate circl keys
 
 From the repo root:
 

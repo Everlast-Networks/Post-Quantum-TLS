@@ -1,3 +1,19 @@
+// ---------------------------------------------------------------------------
+// Copyright (c) 2026 Everlast Networks Pty. Ltd..
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" basis,
+// without warranties or conditions of any kind, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ---------------------------------------------------------------------------
+
 package main
 
 import (
@@ -26,7 +42,7 @@ const (
 
 func main() {
 	var (
-		outDir   = flag.String("out", "", "output directory; typically .../certs/application")
+		outDir   = flag.String("out", "", "output directory; typically .../certs/circl")
 		levelStr = flag.String("mldsa", "87", "ML-DSA level: 44|65|87")
 		force    = flag.Bool("force", false, "overwrite existing files")
 	)
@@ -48,7 +64,7 @@ func main() {
 	// KEM (fixed: ML-KEM-1024 for V1)
 	kemScheme := mlkem1024.Scheme()
 
-	// Generate full Application keyset: client + server
+	// Generate full circl keyset: client + server
 	if err := genKEMPair(kemScheme, *outDir, "client", *force); err != nil {
 		fatalf("client kem: %v", err)
 	}
@@ -86,7 +102,7 @@ func main() {
 	// Drop a short hint file for operators.
 	readme := filepath.Join(*outDir, "README.txt")
 	_ = writeFileAtomic(readme, 0o644, []byte(
-		"QTLS Application mode keys.\n"+
+		"QTLS Circl mode keys.\n"+
 			"\n"+
 			"Files:\n"+
 			"  client.kem.seed   (binary seed; ML-KEM-1024)\n"+
@@ -101,7 +117,7 @@ func main() {
 			"YAML should reference seed paths for private material; public paths for peers.\n",
 	), *force)
 
-	fmt.Fprintf(os.Stdout, "ok: wrote Application keys into %s\n", *outDir)
+	fmt.Fprintf(os.Stdout, "ok: wrote Circl keys into %s\n", *outDir)
 }
 
 func parseLevel(s string) (mldsaLevel, error) {

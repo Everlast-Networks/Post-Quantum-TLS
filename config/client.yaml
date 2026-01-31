@@ -1,14 +1,30 @@
-mode: application       # 'application' or 'openssl' or 'system' [system is windows exclusive for now]
-certs_dir: ../certs     # Path to certs. In tests and prod, execs are stored under /bin and certs under /certs.
+mode: openssl
+
+# Base directory that contains root.crt, chain.pem, client.crt, server.crt,
+# plus the openssl/ subdirectory for key material.
+certs_dir: ../certs
 
 openssl:
-  dir: /opt/ossl-3.5    # Openssl rolling version - in this build it's 3.5.
-  command: ""
+  # Windows: leave dir empty and ensure openssl.exe is on PATH; optionally set command.
+  # Linux/macOS: set dir to the standalone install that contains bin/openssl.
+  dir: /opt/ossl-3.5
+  command: ""                  # example on Windows: C:\OpenSSL-Win64\bin\openssl.exe
+  conf_path: openssl/openssl.cnf
 
-replay_ttl_seconds: 120           # TTY expiry to avoid replay attacks
+x509:
+  root_cert_path: root.crt
+  chain_path: chain.pem
+  client_cert_path: client.crt
+  server_cert_path: server.crt
 
 keys:
+  # Client encrypts to server using server KEM public key; client decrypts using client KEM private key.
+  kem_public_path: openssl/server.kem.pub
   kem_private_path: openssl/client.kem.key
+
+  # Client signs using client Sig private key.
+  # Peer Sig public key can be omitted in OpenSSL mode; it will be extracted from server_cert_path.
   sig_private_path: openssl/client.sig.key
-  kem_public_path:  openssl/server.kem.pub
-  sig_public_path:  openssl/server.sig.pub
+  sig_public_path: ""
+
+replay_ttl_seconds: 120
